@@ -2,7 +2,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
 import re
 
 @csrf_exempt
@@ -79,6 +80,36 @@ def chat_view(request):
         agora = datetime.now()
         resposta = agora.strftime("Hoje é %d/%m/%Y e são %H:%M 🕒")
         return JsonResponse({"resposta": resposta})
+
+    # Placar de futebol - Últimos jogos (Scraping em sites como G1 ou Band.com.br)
+    if any(p in mensagem for p in ["placar", "jogo", "futebol", "últimos resultados"]):
+        try:
+            # Scraping do site G1 (ajuste a URL para Band ou outros)
+            url = "https://g1.globo.com/esportes/futebol/"
+            r = requests.get(url)
+            soup = BeautifulSoup(r.text, "html.parser")
+
+            # Encontrar os placares recentes - ajuste conforme o site
+            placares = []
+            jogos = soup.find_all("div", class_="feed-post-body")  # Ajuste o seletor conforme o site
+
+            for jogo in jogos:
+                try:
+                    titulo = jogo.find("a").text
+                    placar = jogo.find("span", class_="feed-post-body-title").text
+                    placares.append(f"{titulo}: {placar}")
+                except AttributeError:
+                    continue
+
+            if placares:
+                resposta = "\n".join(placares)
+            else:
+                resposta = "Não encontrei placares recentes."
+
+            return JsonResponse({"resposta": f"Últimos placares:\n{resposta}"})
+
+        except Exception:
+            return JsonResponse({"resposta": "Não consegui buscar os placares agora 😓"})
 
     # Fallback
     return JsonResponse({"resposta": "Ainda não aprendi a responder isso, mas tô evoluindo! 🚀"})
