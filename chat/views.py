@@ -83,33 +83,75 @@ def chat_view(request):
 
     # Placar de futebol - Últimos jogos (Scraping em sites como G1 ou Band.com.br)
     if any(p in mensagem for p in ["placar", "jogo", "futebol", "últimos resultados"]):
-        try:
-            # Scraping do site G1 (ajuste a URL para Band ou outros)
-            url = "https://g1.globo.com/esportes/futebol/"
-            r = requests.get(url)
-            soup = BeautifulSoup(r.text, "html.parser")
+        return JsonResponse({"resposta": buscar_noticias_futebol()})
 
-            # Encontrar os placares recentes - ajuste conforme o site
-            placares = []
-            jogos = soup.find_all("div", class_="feed-post-body")  # Ajuste o seletor conforme o site
+    # Notícias do Brasil
+    if "brasil" in mensagem or "notícias do brasil" in mensagem:
+        return JsonResponse({"resposta": buscar_noticias_brasil()})
 
-            for jogo in jogos:
-                try:
-                    titulo = jogo.find("a").text
-                    placar = jogo.find("span", class_="feed-post-body-title").text
-                    placares.append(f"{titulo}: {placar}")
-                except AttributeError:
-                    continue
-
-            if placares:
-                resposta = "\n".join(placares)
-            else:
-                resposta = "Não encontrei placares recentes."
-
-            return JsonResponse({"resposta": f"Últimos placares:\n{resposta}"})
-
-        except Exception:
-            return JsonResponse({"resposta": "Não consegui buscar os placares agora 😓"})
+    # Fórmula 1
+    if "formula1" in mensagem or "f1" in mensagem:
+        return JsonResponse({"resposta": buscar_noticias_formula1()})
 
     # Fallback
     return JsonResponse({"resposta": "Ainda não aprendi a responder isso, mas tô evoluindo! 🚀"})
+
+def buscar_noticias_futebol():
+    try:
+        url = "https://g1.globo.com/esportes/futebol/"
+        r = requests.get(url)
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        noticias = []
+        for item in soup.find_all("h3", class_="feed-post-body-title"):
+            titulo = item.get_text(strip=True)
+            link = item.find("a")["href"]
+            noticias.append(f"{titulo} - {link}")
+
+        if noticias:
+            return "\n".join(noticias)
+        else:
+            return "Não encontrei placares recentes."
+
+    except Exception:
+        return "Não consegui buscar as notícias do futebol agora 😓"
+
+def buscar_noticias_brasil():
+    try:
+        url = "https://g1.globo.com/"
+        r = requests.get(url)
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        noticias = []
+        for item in soup.find_all("h3", class_="feed-post-body-title"):
+            titulo = item.get_text(strip=True)
+            link = item.find("a")["href"]
+            noticias.append(f"{titulo} - {link}")
+
+        if noticias:
+            return "\n".join(noticias)
+        else:
+            return "Não encontrei notícias do Brasil agora."
+
+    except Exception:
+        return "Não consegui buscar as notícias do Brasil agora 😓"
+
+def buscar_noticias_formula1():
+    try:
+        url = "https://uol.com.br/esportes/formula-1"
+        r = requests.get(url)
+        soup = BeautifulSoup(r.text, "html.parser")
+
+        noticias = []
+        for item in soup.find_all("h3", class_="title"):
+            titulo = item.get_text(strip=True)
+            link = item.find("a")["href"]
+            noticias.append(f"{titulo} - {link}")
+
+        if noticias:
+            return "\n".join(noticias)
+        else:
+            return "Não encontrei notícias sobre Fórmula 1 agora."
+
+    except Exception:
+        return "Não consegui buscar notícias da Fórmula 1 agora 😓"
